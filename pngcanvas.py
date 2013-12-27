@@ -6,7 +6,8 @@ __author__ = "Rui Carmo (http://the.taoofmac.com)"
 __license__ = "MIT"
 __contributors__ = ["http://collaboa.weed.rbse.com/repository/file/branches/pgsql/lib/spark_pr.rb"], ["Eli Bendersky"], ["Dave Griffith"]
 
-import os, sys, zlib, struct
+import struct
+import zlib
 
 signature = struct.pack("8B", 137, 80, 78, 71, 13, 10, 26, 10)
 
