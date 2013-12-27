@@ -10,27 +10,32 @@ import os, sys, zlib, struct
 
 signature = struct.pack("8B", 137, 80, 78, 71, 13, 10, 26, 10)
 
-# alpha blends two colors, using the alpha given by c2
 def blend(c1, c2):
+    """Alpha blends two colors, using the alpha given by c2"""
     return [c1[i]*(0xFF-c2[3]) + c2[i]*c2[3] >> 8 for i in range(3)]
 
-# compute a new alpha given a 0-0xFF intensity
+
 def intensity(c,i):
+    """Compute a new alpha given a 0-0xFF intensity"""
     return [c[0],c[1],c[2],(c[3]*i) >> 8]
 
-# compute perceptive grayscale value
+
 def grayscale(c):
+    """Compute perceptive grayscale value"""
     return int(c[0]*0.3 + c[1]*0.59 + c[2]*0.11)
 
-# compute gradient colors
-def gradientList(start,end,steps):
+
+def gradient_list(start,end,steps):
+    """Compute gradient colors"""
     delta = [end[i] - start[i] for i in range(4)]
     grad = []
     for i in range(steps+1):
         grad.append([start[j] + (delta[j]*i)/steps for j in range(4)])
     return grad
 
+
 class PNGCanvas:
+
     def __init__(self, width, height, bgcolor=bytearray([0xff,0xff,0xff,0xff]),color=bytearray([0,0,0,0xff])):
         self.width = width
         self.height = height
@@ -38,49 +43,65 @@ class PNGCanvas:
         self.bgcolor = bgcolor
         self.canvas = bytearray(self.bgcolor * 4 * width * height)
 
+
     def _offset(self, x, y):
+        """Helper for internal data"""
         return y * self.width * 4 + x * 4
 
+
     def point(self,x,y,color=None):
+        """Set a pixel"""
         if x<0 or y<0 or x>self.width-1 or y>self.height-1: return
         if color == None:
             color = self.color
         o = self._offset(x,y)
         self.canvas[o:o+3] = blend(self.canvas[o:o+3],bytearray(color))
 
-    def _rectHelper(self,x0,y0,x1,y1):
+
+    def rect_helper(self,x0,y0,x1,y1):
+        """Rectangle helper"""
         x0, y0, x1, y1 = int(x0), int(y0), int(x1), int(y1)
         if x0 > x1: x0, x1 = x1, x0
         if y0 > y1: y0, y1 = y1, y0
         return [x0,y0,x1,y1]
 
-    def verticalGradient(self,x0,y0,x1,y1,start,end):
-        x0, y0, x1, y1 = self._rectHelper(x0,y0,x1,y1)
-        grad = gradientList(start,end,y1-y0)
+
+    def vertical_gradient(self,x0,y0,x1,y1,start,end):
+        """Draw a vertical gradient"""
+        x0, y0, x1, y1 = self.rect_helper(x0,y0,x1,y1)
+        grad = gradient_list(start,end,y1-y0)
         for x in range(x0, x1+1):
             for y in range(y0, y1+1):
                 self.point(x,y,grad[y-y0])
 
+
     def rectangle(self,x0,y0,x1,y1):
-        x0, y0, x1, y1 = self._rectHelper(x0,y0,x1,y1)
+        """Draw a rectangle"""
+        x0, y0, x1, y1 = self.rect_helper(x0,y0,x1,y1)
         self.polyline([[x0,y0],[x1,y0],[x1,y1],[x0,y1],[x0,y0]])
 
-    def filledRectangle(self,x0,y0,x1,y1):
-        x0, y0, x1, y1 = self._rectHelper(x0,y0,x1,y1)
+
+    def filled_rectangle(self,x0,y0,x1,y1):
+        """Draw a filled rectangle"""
+        x0, y0, x1, y1 = self.rect_helper(x0,y0,x1,y1)
         for x in range(x0, x1+1):
             for y in range(y0, y1+1):
                 self.point(x,y,self.color)
 
-    def copyRect(self,x0,y0,x1,y1,dx,dy,destination):
-        x0, y0, x1, y1 = self._rectHelper(x0,y0,x1,y1)
+
+    def copy_rect(self,x0,y0,x1,y1,dx,dy,destination):
+        """Copy (blit) a rectangle onto another part of the image"""
+        x0, y0, x1, y1 = self.rect_helper(x0,y0,x1,y1)
         for x in range(x0, x1+1):
             for y in range(y0, y1+1):
                 d = destination._offset(dx+x-x0,dy+y-y0)
                 o = self._offset(x,y)
                 destination.canvas[d:d+4] = self.canvas[o:o+4]
 
-    def blendRect(self,x0,y0,x1,y1,dx,dy,destination,alpha=0xff):
-        x0, y0, x1, y1 = self._rectHelper(x0,y0,x1,y1)
+
+    def blend_rect(self,x0,y0,x1,y1,dx,dy,destination,alpha=0xff):
+        """Blend a rectangle onto the image"""
+        x0, y0, x1, y1 = self.rect_helper(x0,y0,x1,y1)
         for x in range(x0, x1+1):
             for y in range(y0, y1+1):
                 o = self._offset(x,y)
@@ -88,8 +109,8 @@ class PNGCanvas:
                 rgba[3] = alpha
                 destination.point(dx+x-x0,dy+y-y0,rgba)
 
-    # draw a line using Xiaolin Wu's antialiasing technique
     def line(self,x0, y0, x1, y1):
+        """Draw a line using Xiaolin Wu's antialiasing technique"""
         # clean params
         x0, y0, x1, y1 = int(x0), int(y0), int(x1), int(y1)
         if y0>y1:
@@ -146,11 +167,15 @@ class PNGCanvas:
             self.point(x0, y0 + 1, intensity(self.color,(0xFF-w)))
         self.point(x1, y1)
 
+
     def polyline(self,arr):
+        """Draw a set of lines"""
         for i in range(0,len(arr)-1):
             self.line(arr[i][0],arr[i][1],arr[i+1][0], arr[i+1][1])
 
+
     def dump(self):
+        """Dump the image data"""
         scanlines = bytearray()
         for y in range(self.height):
             scanlines.append('\0') # filter type 0 (None)
@@ -163,11 +188,15 @@ class PNGCanvas:
             self.pack_chunk('IDAT', zlib.compress(str(scanlines),9)) + \
             self.pack_chunk('IEND', '')
 
+
     def pack_chunk(self,tag,data):
+        """Pack a PNG chunk for serializing to disk"""
         to_check = tag + data
         return struct.pack("!I",len(data)) + to_check + struct.pack("!I", zlib.crc32(to_check) & 0xFFFFFFFF)
 
+
     def load(self,f):
+        """Load a PNG image"""
         assert f.read(8) == signature
         for tag, data in self.chunks(f):
             if tag == "IHDR":
@@ -202,7 +231,9 @@ class PNGCanvas:
                         self.point(x,y,rgba[j:j+4])
                         j = j + 4
 
+
     def defilter(self,cur,prev,filtertype,bpp=3):
+        """Decode a chunk"""
         if filtertype == 0: # No filter
             return cur
         elif filtertype == 1: # Sub
@@ -242,7 +273,9 @@ class PNGCanvas:
                 raise TypeError('Unrecognized scanline filter type')
         return cur
 
+
     def chunks(self,f):
+        """Split read PNG image data into chunks"""
         while 1:
             try:
                 length = struct.unpack("!I",f.read(4))[0]
@@ -255,7 +288,9 @@ class PNGCanvas:
                 raise IOError
             yield [tag,data]
 
+
 if __name__ == '__main__':
+    # Our little unit test of sorts
     width = 512
     height = 512
     print "Creating Canvas..."
@@ -263,7 +298,7 @@ if __name__ == '__main__':
     c.color = bytearray([0xff,0,0,0xff])
     c.rectangle(0,0,width-1,height-1)
     print "Generating Gradient..."
-    c.verticalGradient(1,1,width-2, height-2,[0xff,0,0,0xff],[0x20,0,0xff,0x80])
+    c.vertical_gradient(1,1,width-2, height-2,[0xff,0,0,0xff],[0x20,0,0xff,0x80])
     print "Drawing Lines..."
     c.color = [0,0,0,0xff]
     c.line(0,0,width-1,height-1)
@@ -271,10 +306,10 @@ if __name__ == '__main__':
     c.line(0,0,width-1,height/2)
     # Copy Rect to Self  
     print "Copy Rect"
-    c.copyRect(1,1,width/2-1,height/2-1,1,height/2,c)
+    c.copy_rect(1,1,width/2-1,height/2-1,1,height/2,c)
     # Blend Rect to Self
     print "Blend Rect"
-    c.blendRect(1,1,width/2-1,height/2-1,width/2,0,c)
+    c.blend_rect(1,1,width/2-1,height/2-1,width/2,0,c)
     # Write test
     print "Writing to file..."
     f = open("test.png", "wb")
