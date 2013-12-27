@@ -1,7 +1,7 @@
 pngcanvas
 =========
 
-A minimalist library to render PNG images using pure Python, originally published [here][tom] in 2005.
+A minimalist library to render PNG images using pure Python inspired by [Thomas Fuchs'][madrobby] [spark_pr][spark_pr] library, originally published [here][tom] in 2005.
 
 Given that I get a couple of mails about it every quarter or so, and that it's been consistently popular with the [Google App Engine][gae] crowd, I decided to release it under the MIT license and welcome any contributions towards speeding it up, cleaning it up and making it generally more useful.
 
@@ -23,3 +23,5 @@ As it stands, you can do the following things with a `PNGCanvas` instance:
 
 [tom]: http://the.taoofmac.com/space/projects/PNGCanvas
 [gae]: https://cloud.google.com/products/app-engine/
+[madrobby]: https://github.com/madrobby
+[spark_pr]: https://github.com/madrobby/spark_pr/blob/master/spark_pr.rb

@@ -2,14 +2,7 @@
 
 """Simple PNG Canvas for Python - updated for bytearray()"""
 __version__ = "1.0.3"
-__author__ = "Rui Carmo (http://the.taoofmac.com)"
 __license__ = "MIT"
-__contributors__ = (
-    ["http://collaboa.weed.rbse.com/repository/"
-     "file/branches/pgsql/lib/spark_pr.rb"],
-    ["Eli Bendersky"],
-    ["Dave Griffith"],
-)
 
 import struct
 import zlib
