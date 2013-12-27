@@ -211,12 +211,13 @@ class PNGCanvas:
                  height,
                  bitdepth,
                  colortype,
-                 compression, filter, interlace) = struct.unpack("!2I5B", data)
+                 compression,
+                 filter_type, interlace) = struct.unpack("!2I5B", data)
                 self.width = width
                 self.height = height
                 self.canvas = bytearray(self.bgcolor * width * height)
                 if (bitdepth, colortype, compression,
-                        filter, interlace) != (8, 6, 0, 0, 0):
+                        filter_type, interlace) != (8, 6, 0, 0, 0):
                     raise TypeError('Unsupported PNG format')
             # we ignore tRNS for the moment
             elif tag == 'IDAT':
