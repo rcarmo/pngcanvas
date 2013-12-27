@@ -7,6 +7,14 @@ __license__ = "MIT"
 import struct
 import zlib
 
+
+# Py2 - Py3 compatibility
+try:
+    range = xrange  # NOQA
+except NameError:  # Py3
+    pass
+
+
 SIGNATURE = struct.pack("8B", 137, 80, 78, 71, 13, 10, 26, 10)
 
 
@@ -278,7 +286,7 @@ class PNGCanvas:
                 tag = f.read(4)
                 data = f.read(length)
                 crc = struct.unpack("!i", f.read(4))[0]
-            except:
+            except struct.error:
                 return
             if zlib.crc32(tag + data) != crc:
                 raise IOError
