@@ -222,7 +222,6 @@ class PNGCanvas:
             # we ignore tRNS for the moment
             elif tag == 'IDAT':
                 raw_data = zlib.decompress(data)
-                rows = []
                 i = 0
                 for y in range(height):
                     filtertype = ord(raw_data[i])
@@ -234,7 +233,6 @@ class PNGCanvas:
                         rgba = self.defilter(cur, prev, filtertype, 4)
                     prev = cur
                     i += width * 4
-                    row = []
                     j = 0
                     for x in range(width):
                         self.point(x, y, rgba[j:j + 4])
