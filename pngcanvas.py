@@ -44,12 +44,12 @@ def gradient_list(start, end, steps):
 
 class PNGCanvas:
     def __init__(self, width, height,
-                 bgcolor=bytearray([0xff, 0xff, 0xff, 0xff]),
-                 color=bytearray([0, 0, 0, 0xff])):
+                 bgcolor=(0xff, 0xff, 0xff, 0xff),
+                 color=(0, 0, 0, 0xff)):
         self.width = width
         self.height = height
-        self.color = color  # rgba
-        self.bgcolor = bgcolor
+        self.color = bytearray(color)  # rgba
+        self.bgcolor = bytearray(bgcolor)
         self.canvas = bytearray(self.bgcolor * 4 * width * height)
 
     def _offset(self, x, y):
@@ -299,14 +299,13 @@ def test():
     width = 512
     height = 512
     print "Creating Canvas..."
-    c = PNGCanvas(width, height)
-    c.color = bytearray([0xff, 0, 0, 0xff])
+    c = PNGCanvas(width, height, color=(0xff, 0, 0, 0xff))
     c.rectangle(0, 0, width - 1, height - 1)
     print "Generating Gradient..."
     c.vertical_gradient(1, 1, width - 2, height - 2,
-                        [0xff, 0, 0, 0xff], [0x20, 0, 0xff, 0x80])
+                        (0xff, 0, 0, 0xff), (0x20, 0, 0xff, 0x80))
     print "Drawing Lines..."
-    c.color = [0, 0, 0, 0xff]
+    c.color = bytearray((0, 0, 0, 0xff))
     c.line(0, 0, width - 1, height - 1)
     c.line(0, 0, width / 2, height - 1)
     c.line(0, 0, width - 1, height / 2)
