@@ -151,10 +151,10 @@ class PNGCanvas:
             e = (dx << 16) / dy
             for i in range(y0, y1 - 1):
                 e_acc_temp, e_acc = e_acc, (e_acc + e) & 0xFFFF
-                if (e_acc <= e_acc_temp):
+                if e_acc <= e_acc_temp:
                     x0 += sx
                 w = 0xFF-(e_acc >> 8)
-                self.point(x0, y0, intensity(self.color, (w)))
+                self.point(x0, y0, intensity(self.color, w))
                 y0 += 1
                 self.point(x0 + sx, y0, intensity(self.color, (0xFF - w)))
             self.point(x1, y1)
@@ -164,10 +164,10 @@ class PNGCanvas:
         e = (dy << 16) / dx
         for i in range(x0, x1 - sx, sx):
             e_acc_temp, e_acc = e_acc, (e_acc + e) & 0xFFFF
-            if (e_acc <= e_acc_temp):
+            if e_acc <= e_acc_temp:
                 y0 += 1
             w = 0xFF-(e_acc >> 8)
-            self.point(x0, y0, intensity(self.color, (w)))
+            self.point(x0, y0, intensity(self.color, w))
             x0 += sx
             self.point(x0, y0 + 1, intensity(self.color, (0xFF-w)))
         self.point(x1, y1)
