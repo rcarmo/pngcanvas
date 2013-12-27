@@ -223,14 +223,12 @@ class PNGCanvas:
             elif tag == 'IDAT':
                 raw_data = zlib.decompress(data)
                 i = 0
+                prev = None
                 for y in range(height):
                     filtertype = ord(raw_data[i])
                     i += 1
                     cur = [ord(x) for x in raw_data[i:i + width * 4]]
-                    if y == 0:
-                        rgba = self.defilter(cur, None, filtertype, 4)
-                    else:
-                        rgba = self.defilter(cur, prev, filtertype, 4)
+                    rgba = self.defilter(cur, prev, filtertype, 4)
                     prev = cur
                     i += width * 4
                     j = 0
