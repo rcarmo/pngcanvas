@@ -285,8 +285,8 @@ class PNGCanvas:
             yield [tag, data]
 
 
-if __name__ == '__main__':
-    # Our little unit test of sorts
+def test():
+# Our little unit test of sorts
     width = 512
     height = 512
     print "Creating Canvas..."
@@ -301,7 +301,7 @@ if __name__ == '__main__':
     c.line(0, 0, width - 1, height - 1)
     c.line(0, 0, width / 2, height - 1)
     c.line(0, 0, width - 1, height / 2)
-    # Copy Rect to Self  
+    # Copy Rect to Self
     print "Copy Rect"
     c.copy_rect(1, 1, width / 2 - 1, height / 2 - 1, 1, height / 2, c)
     # Blend Rect to Self
@@ -322,3 +322,7 @@ if __name__ == '__main__':
     f = open("recycle.png", "wb")
     f.write(c.dump())
     f.close()
+
+
+if __name__ == '__main__':
+    test()
