@@ -179,12 +179,12 @@ class PNGCanvas:
 
     def dump(self):
         """Dump the image data"""
-        scanlines = bytearray()
+        scan_lines = bytearray()
         for y in range(self.height):
-            scanlines.append('\0')  # filter type 0 (None)
+            scan_lines.append('\0')  # filter type 0 (None)
             #print y * self.width * 4, (y+1) * self.width * 4
             #print self.canvas[y * self.width * 4:(y+1) * self.width * 4]
-            scanlines.extend(
+            scan_lines.extend(
                 self.canvas[(y * self.width * 4):((y + 1) * self.width * 4)]
             )
         # image represented as RGBA tuples, no interlacing
@@ -192,7 +192,7 @@ class PNGCanvas:
             self.pack_chunk('IHDR', struct.pack("!2I5B",
                                                 self.width, self.height,
                                                 8, 6, 0, 0, 0)) + \
-            self.pack_chunk('IDAT', zlib.compress(str(scanlines), 9)) + \
+            self.pack_chunk('IDAT', zlib.compress(str(scan_lines), 9)) + \
             self.pack_chunk('IEND', '')
 
     @staticmethod
@@ -209,14 +209,14 @@ class PNGCanvas:
             if tag == "IHDR":
                 (width,
                  height,
-                 bitdepth,
-                 colortype,
+                 bit_depth,
+                 color_type,
                  compression,
                  filter_type, interlace) = struct.unpack("!2I5B", data)
                 self.width = width
                 self.height = height
                 self.canvas = bytearray(self.bgcolor * width * height)
-                if (bitdepth, colortype, compression,
+                if (bit_depth, color_type, compression,
                         filter_type, interlace) != (8, 6, 0, 0, 0):
                     raise TypeError('Unsupported PNG format')
             # we ignore tRNS for the moment
@@ -225,10 +225,10 @@ class PNGCanvas:
                 i = 0
                 prev = None
                 for y in range(height):
-                    filtertype = ord(raw_data[i])
+                    filter_type = ord(raw_data[i])
                     i += 1
                     cur = [ord(x) for x in raw_data[i:i + width * 4]]
-                    rgba = self.defilter(cur, prev, filtertype, 4)
+                    rgba = self.defilter(cur, prev, filter_type, 4)
                     prev = cur
                     i += width * 4
                     j = 0
@@ -237,24 +237,24 @@ class PNGCanvas:
                         j += 4
 
     @staticmethod
-    def defilter(cur, prev, filtertype, bpp=3):
+    def defilter(cur, prev, filter_type, bpp=3):
         """Decode a chunk"""
-        if filtertype == 0:  # No filter
+        if filter_type == 0:  # No filter
             return cur
-        elif filtertype == 1:  # Sub
+        elif filter_type == 1:  # Sub
             xp = 0
             for xc in range(bpp, len(cur)):
                 cur[xc] = (cur[xc] + cur[xp]) % 256
                 xp += 1
-        elif filtertype == 2:  # Up
+        elif filter_type == 2:  # Up
             for xc in range(len(cur)):
                 cur[xc] = (cur[xc] + prev[xc]) % 256
-        elif filtertype == 3:  # Average
+        elif filter_type == 3:  # Average
             xp = 0
             for xc in range(len(cur)):
                 cur[xc] = (cur[xc] + (cur[xp] + prev[xc])/2) % 256
                 xp += 1
-        elif filtertype == 4:  # Paeth
+        elif filter_type == 4:  # Paeth
             xp = 0
             for i in range(bpp):
                 cur[i] = (cur[i] + prev[i]) % 256
