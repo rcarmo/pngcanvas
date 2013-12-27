@@ -141,7 +141,7 @@ class PNGCanvas:
         if dx == dy:
             for x in range(x0, x1, sx):
                 self.point(x, y0)
-                y0 = y0 + 1
+                y0 += 1
             return
 
         # main loop
@@ -152,10 +152,10 @@ class PNGCanvas:
             for i in range(y0, y1 - 1):
                 e_acc_temp, e_acc = e_acc, (e_acc + e) & 0xFFFF
                 if (e_acc <= e_acc_temp):
-                    x0 = x0 + sx
+                    x0 += sx
                 w = 0xFF-(e_acc >> 8)
                 self.point(x0, y0, intensity(self.color, (w)))
-                y0 = y0 + 1
+                y0 += 1
                 self.point(x0 + sx, y0, intensity(self.color, (0xFF - w)))
             self.point(x1, y1)
             return
@@ -165,10 +165,10 @@ class PNGCanvas:
         for i in range(x0, x1 - sx, sx):
             e_acc_temp, e_acc = e_acc, (e_acc + e) & 0xFFFF
             if (e_acc <= e_acc_temp):
-                y0 = y0 + 1
+                y0 += 1
             w = 0xFF-(e_acc >> 8)
             self.point(x0, y0, intensity(self.color, (w)))
-            x0 = x0 + sx
+            x0 += sx
             self.point(x0, y0 + 1, intensity(self.color, (0xFF-w)))
         self.point(x1, y1)
 
@@ -226,19 +226,19 @@ class PNGCanvas:
                 i = 0
                 for y in range(height):
                     filtertype = ord(raw_data[i])
-                    i = i + 1
+                    i += 1
                     cur = [ord(x) for x in raw_data[i:i + width * 4]]
                     if y == 0:
                         rgba = self.defilter(cur, None, filtertype, 4)
                     else:
                         rgba = self.defilter(cur, prev, filtertype, 4)
                     prev = cur
-                    i = i + width * 4
+                    i += width * 4
                     row = []
                     j = 0
                     for x in range(width):
                         self.point(x, y, rgba[j:j + 4])
-                        j = j + 4
+                        j += 4
 
     @staticmethod
     def defilter(cur, prev, filtertype, bpp=3):
@@ -249,7 +249,7 @@ class PNGCanvas:
             xp = 0
             for xc in range(bpp, len(cur)):
                 cur[xc] = (cur[xc] + cur[xp]) % 256
-                xp = xp + 1
+                xp += 1
         elif filtertype == 2:  # Up
             for xc in range(len(cur)):
                 cur[xc] = (cur[xc] + prev[xc]) % 256
@@ -257,7 +257,7 @@ class PNGCanvas:
             xp = 0
             for xc in range(len(cur)):
                 cur[xc] = (cur[xc] + (cur[xp] + prev[xc])/2) % 256
-                xp = xp + 1
+                xp += 1
         elif filtertype == 4:  # Paeth
             xp = 0
             for i in range(bpp):
@@ -277,7 +277,7 @@ class PNGCanvas:
                 else:
                     value = c
                 cur[xc] = (cur[xc] + value) % 256
-                xp = xp + 1
+                xp += 1
             else:
                 raise TypeError('Unrecognized scanline filter type')
         return cur
