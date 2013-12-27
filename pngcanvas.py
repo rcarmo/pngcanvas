@@ -65,7 +65,8 @@ class PNGCanvas:
         o = self._offset(x, y)
         self.canvas[o:o + 3] = blend(self.canvas[o:o + 3], bytearray(color))
 
-    def rect_helper(self, x0, y0, x1, y1):
+    @staticmethod
+    def rect_helper(x0, y0, x1, y1):
         """Rectangle helper"""
         x0, y0, x1, y1 = int(x0), int(y0), int(x1), int(y1)
         if x0 > x1:
@@ -194,7 +195,8 @@ class PNGCanvas:
             self.pack_chunk('IDAT', zlib.compress(str(scanlines), 9)) + \
             self.pack_chunk('IEND', '')
 
-    def pack_chunk(self, tag, data):
+    @staticmethod
+    def pack_chunk(tag, data):
         """Pack a PNG chunk for serializing to disk"""
         to_check = tag + data
         return (struct.pack("!I", len(data)) + to_check +
@@ -237,7 +239,8 @@ class PNGCanvas:
                         self.point(x, y, rgba[j:j + 4])
                         j = j + 4
 
-    def defilter(self, cur, prev, filtertype, bpp=3):
+    @staticmethod
+    def defilter(cur, prev, filtertype, bpp=3):
         """Decode a chunk"""
         if filtertype == 0:  # No filter
             return cur
@@ -278,7 +281,8 @@ class PNGCanvas:
                 raise TypeError('Unrecognized scanline filter type')
         return cur
 
-    def chunks(self, f):
+    @staticmethod
+    def chunks(f):
         """Split read PNG image data into chunks"""
         while 1:
             try:
