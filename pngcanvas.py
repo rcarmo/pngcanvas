@@ -205,39 +205,42 @@ class PNGCanvas:
     def load(self, f):
         """Load a PNG image"""
         assert f.read(8) == SIGNATURE
-        for tag, data in self.chunks(f):
-            if tag == "IHDR":
-                (width,
-                 height,
-                 bit_depth,
-                 color_type,
-                 compression,
-                 filter_type, interlace) = struct.unpack("!2I5B", data)
-                self.width = width
-                self.height = height
-                self.canvas = bytearray(self.bgcolor * width * height)
-                if (bit_depth, color_type, compression,
-                        filter_type, interlace) != (8, 6, 0, 0, 0):
-                    raise TypeError('Unsupported PNG format')
+
+        chunks = iter(self.chunks(f))
+        header = chunks.next()
+        assert header[0] == "IHDR"
+
+        (width, height, bit_depth, color_type, compression,
+         filter_type, interlace) = struct.unpack("!2I5B", header[1])
+
+        if (bit_depth, color_type, compression,
+                filter_type, interlace) != (8, 6, 0, 0, 0):
+            raise TypeError('Unsupported PNG format')
+
+        self.width = width
+        self.height = height
+        self.canvas = bytearray(self.bgcolor * width * height)
+        row_size = width * 4
+        step_size = 1 + row_size
+        row_fmt = '!' + str(step_size) + 'B'
+
+        for tag, data in chunks:
             # we ignore tRNS for the moment
-            elif tag == 'IDAT':
-                raw_data = zlib.decompress(data)
-                i = 0
-                prev = None
-                for y in range(height):
-                    filter_type = ord(raw_data[i])
-                    i += 1
-                    cur = [ord(x) for x in raw_data[i:i + width * 4]]
-                    rgba = self.defilter(cur, prev, filter_type, 4)
-                    prev = cur
-                    i += width * 4
-                    j = 0
-                    for x in range(width):
-                        self.point(x, y, rgba[j:j + 4])
-                        j += 4
+            if tag != 'IDAT':
+                continue
+
+            raw_data = zlib.decompress(data)
+            old_row = None
+            cursor = 0
+            for i in range(0, height * step_size, step_size):
+                unpacked = struct.unpack(row_fmt, raw_data[i:i + step_size])
+                old_row = self.defilter(unpacked[1:], old_row, filter_type)
+                self.canvas[cursor:cursor + row_size] = old_row
+                cursor += row_size
+
 
     @staticmethod
-    def defilter(cur, prev, filter_type, bpp=3):
+    def defilter(cur, prev, filter_type, bpp=4):
         """Decode a chunk"""
         if filter_type == 0:  # No filter
             return cur
