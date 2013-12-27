@@ -9,7 +9,7 @@ __contributors__ = ["http://collaboa.weed.rbse.com/repository/file/branches/pgsq
 import struct
 import zlib
 
-signature = struct.pack("8B", 137, 80, 78, 71, 13, 10, 26, 10)
+SIGNATURE = struct.pack("8B", 137, 80, 78, 71, 13, 10, 26, 10)
 
 def blend(c1, c2):
     """Alpha blends two colors, using the alpha given by c2"""
@@ -184,7 +184,7 @@ class PNGCanvas:
             #print self.canvas[y * self.width * 4:(y+1) * self.width * 4]
             scanlines.extend(self.canvas[(y * self.width * 4):((y + 1) * self.width * 4)])
         # image represented as RGBA tuples, no interlacing
-        return signature + \
+        return SIGNATURE + \
             self.pack_chunk('IHDR', struct.pack("!2I5B",self.width,self.height, 8, 6, 0, 0, 0)) + \
             self.pack_chunk('IDAT', zlib.compress(str(scanlines), 9)) + \
             self.pack_chunk('IEND', '')
@@ -198,7 +198,7 @@ class PNGCanvas:
 
     def load(self,f):
         """Load a PNG image"""
-        assert f.read(8) == signature
+        assert f.read(8) == SIGNATURE
         for tag, data in self.chunks(f):
             if tag == "IHDR":
                 ( width,
