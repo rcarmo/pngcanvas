@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 """Simple PNG Canvas for Python - updated for bytearray()"""
 __version__ = "1.0.3"
 __license__ = "MIT"
@@ -295,45 +293,3 @@ class PNGCanvas:
             if zlib.crc32(tag + data) != crc:
                 raise IOError
             yield [tag, data]
-
-
-def test():
-# Our little unit test of sorts
-    width = 512
-    height = 512
-    print "Creating Canvas..."
-    c = PNGCanvas(width, height, color=(0xff, 0, 0, 0xff))
-    c.rectangle(0, 0, width - 1, height - 1)
-    print "Generating Gradient..."
-    c.vertical_gradient(1, 1, width - 2, height - 2,
-                        (0xff, 0, 0, 0xff), (0x20, 0, 0xff, 0x80))
-    print "Drawing Lines..."
-    c.color = bytearray((0, 0, 0, 0xff))
-    c.line(0, 0, width - 1, height - 1)
-    c.line(0, 0, width / 2, height - 1)
-    c.line(0, 0, width - 1, height / 2)
-    # Copy Rect to Self
-    print "Copy Rect"
-    c.copy_rect(1, 1, width / 2 - 1, height / 2 - 1, 1, height / 2, c)
-    # Blend Rect to Self
-    print "Blend Rect"
-    c.blend_rect(1, 1, width / 2 - 1, height / 2 - 1, width / 2, 0, c)
-    # Write test
-    print "Writing to file..."
-    f = open("test.png", "wb")
-    f.write(c.dump())
-    f.close()
-    # Read test
-    print "Reading from file..."
-    f = open("test.png", "rb")
-    c.load(f)
-    f.close()
-    # Write back
-    print "Writing to new file..."
-    f = open("recycle.png", "wb")
-    f.write(c.dump())
-    f.close()
-
-
-if __name__ == '__main__':
-    test()
