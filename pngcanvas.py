@@ -1,19 +1,28 @@
 """Simple PNG Canvas for Python - updated for bytearray()"""
+
+from __future__ import (
+    absolute_import, division, print_function, unicode_literals
+)
+
 __version__ = "1.0.3"
 __license__ = "MIT"
 
+
 import struct
+import sys
 import zlib
 
 
 # Py2 - Py3 compatibility
-try:
+if sys.version < '3':
     range = xrange  # NOQA
-except NameError:  # Py3
-    pass
 
 
-SIGNATURE = struct.pack("8B", 137, 80, 78, 71, 13, 10, 26, 10)
+SIGNATURE = struct.pack(b"8B", 137, 80, 78, 71, 13, 10, 26, 10)
+
+
+def force_int(*args):
+    return tuple(int(x) for x in args)
 
 
 def blend(c1, c2):
@@ -34,10 +43,8 @@ def grayscale(c):
 def gradient_list(start, end, steps):
     """Compute gradient colors"""
     delta = [end[i] - start[i] for i in range(4)]
-    grad = []
-    for i in range(steps + 1):
-        grad.append([start[j] + (delta[j] * i)/steps for j in range(4)])
-    return grad
+    return [bytearray(start[j] + (delta[j] * i) // steps for j in range(4))
+            for i in range(steps + 1)]
 
 
 class PNGCanvas:
@@ -52,6 +59,7 @@ class PNGCanvas:
 
     def _offset(self, x, y):
         """Helper for internal data"""
+        x, y = force_int(x, y)
         return y * self.width * 4 + x * 4
 
     def point(self, x, y, color=None):
@@ -61,17 +69,18 @@ class PNGCanvas:
         if color is None:
             color = self.color
         o = self._offset(x, y)
+
         self.canvas[o:o + 3] = blend(self.canvas[o:o + 3], bytearray(color))
 
     @staticmethod
     def rect_helper(x0, y0, x1, y1):
         """Rectangle helper"""
-        x0, y0, x1, y1 = int(x0), int(y0), int(x1), int(y1)
+        x0, y0, x1, y1 = force_int(x0, y0, x1, y1)
         if x0 > x1:
             x0, x1 = x1, x0
         if y0 > y1:
             y0, y1 = y1, y0
-        return [x0, y0, x1, y1]
+        return x0, y0, x1, y1
 
     def vertical_gradient(self, x0, y0, x1, y1, start, end):
         """Draw a vertical gradient"""
@@ -96,6 +105,8 @@ class PNGCanvas:
     def copy_rect(self, x0, y0, x1, y1, dx, dy, destination):
         """Copy (blit) a rectangle onto another part of the image"""
         x0, y0, x1, y1 = self.rect_helper(x0, y0, x1, y1)
+        dx, dy = force_int(dx, dy)
+
         for x in range(x0, x1 + 1):
             for y in range(y0, y1 + 1):
                 d = destination._offset(dx + x - x0, dy + y - y0)
@@ -146,7 +157,7 @@ class PNGCanvas:
         self.point(x0, y0)
         e_acc = 0
         if dy > dx:  # vertical displacement
-            e = (dx << 16) / dy
+            e = (dx << 16) // dy
             for i in range(y0, y1 - 1):
                 e_acc_temp, e_acc = e_acc, (e_acc + e) & 0xFFFF
                 if e_acc <= e_acc_temp:
@@ -159,7 +170,7 @@ class PNGCanvas:
             return
 
         # horizontal displacement
-        e = (dy << 16) / dx
+        e = (dy << 16) // dx
         for i in range(x0, x1 - sx, sx):
             e_acc_temp, e_acc = e_acc, (e_acc + e) & 0xFFFF
             if e_acc <= e_acc_temp:
@@ -179,37 +190,35 @@ class PNGCanvas:
         """Dump the image data"""
         scan_lines = bytearray()
         for y in range(self.height):
-            scan_lines.append('\0')  # filter type 0 (None)
-            #print y * self.width * 4, (y+1) * self.width * 4
-            #print self.canvas[y * self.width * 4:(y+1) * self.width * 4]
+            scan_lines.append(0)  # filter type 0 (None)
             scan_lines.extend(
                 self.canvas[(y * self.width * 4):((y + 1) * self.width * 4)]
             )
         # image represented as RGBA tuples, no interlacing
         return SIGNATURE + \
-            self.pack_chunk('IHDR', struct.pack("!2I5B",
-                                                self.width, self.height,
-                                                8, 6, 0, 0, 0)) + \
-            self.pack_chunk('IDAT', zlib.compress(str(scan_lines), 9)) + \
-            self.pack_chunk('IEND', '')
+            self.pack_chunk(b'IHDR', struct.pack(b"!2I5B",
+                                                 self.width, self.height,
+                                                 8, 6, 0, 0, 0)) + \
+            self.pack_chunk(b'IDAT', zlib.compress(bytes(scan_lines), 9)) + \
+            self.pack_chunk(b'IEND', b'')
 
     @staticmethod
     def pack_chunk(tag, data):
         """Pack a PNG chunk for serializing to disk"""
         to_check = tag + data
-        return (struct.pack("!I", len(data)) + to_check +
-                struct.pack("!I", zlib.crc32(to_check) & 0xFFFFFFFF))
+        return (struct.pack(b"!I", len(data)) + to_check +
+                struct.pack(b"!I", zlib.crc32(to_check) & 0xFFFFFFFF))
 
     def load(self, f):
         """Load a PNG image"""
         assert f.read(8) == SIGNATURE
 
         chunks = iter(self.chunks(f))
-        header = chunks.next()
-        assert header[0] == "IHDR"
+        header = next(chunks)
+        assert header[0] == b'IHDR'
 
         (width, height, bit_depth, color_type, compression,
-         filter_type, interlace) = struct.unpack("!2I5B", header[1])
+         filter_type, interlace) = struct.unpack(b"!2I5B", header[1])
 
         if (bit_depth, color_type, compression,
                 filter_type, interlace) != (8, 6, 0, 0, 0):
@@ -220,11 +229,13 @@ class PNGCanvas:
         self.canvas = bytearray(self.bgcolor * width * height)
         row_size = width * 4
         step_size = 1 + row_size
-        row_fmt = '!' + str(step_size) + 'B'
+
+        # Python 2 requires the encode for struct.unpack
+        row_fmt = ('!%dB' % step_size).encode('ascii')
 
         for tag, data in chunks:
             # we ignore tRNS for the moment
-            if tag != 'IDAT':
+            if tag != b'IDAT':
                 continue
 
             raw_data = zlib.decompress(data)
@@ -235,7 +246,6 @@ class PNGCanvas:
                 old_row = self.defilter(unpacked[1:], old_row, filter_type)
                 self.canvas[cursor:cursor + row_size] = old_row
                 cursor += row_size
-
 
     @staticmethod
     def defilter(cur, prev, filter_type, bpp=4):
@@ -253,7 +263,7 @@ class PNGCanvas:
         elif filter_type == 3:  # Average
             xp = 0
             for xc in range(len(cur)):
-                cur[xc] = (cur[xc] + (cur[xp] + prev[xc])/2) % 256
+                cur[xc] = (cur[xc] + (cur[xp] + prev[xc]) // 2) % 256
                 xp += 1
         elif filter_type == 4:  # Paeth
             xp = 0
@@ -284,12 +294,12 @@ class PNGCanvas:
         """Split read PNG image data into chunks"""
         while 1:
             try:
-                length = struct.unpack("!I", f.read(4))[0]
+                length = struct.unpack(b"!I", f.read(4))[0]
                 tag = f.read(4)
                 data = f.read(length)
-                crc = struct.unpack("!i", f.read(4))[0]
+                crc = struct.unpack(b"!I", f.read(4))[0]
             except struct.error:
                 return
-            if zlib.crc32(tag + data) != crc:
-                raise IOError
-            yield [tag, data]
+            if zlib.crc32(tag + data) & 0xFFFFFFFF != crc:
+                raise IOError('Checksum fail')
+            yield tag, data
