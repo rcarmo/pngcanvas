@@ -43,29 +43,31 @@ class CanvasTest(unittest.TestCase):
         logging.debug("Blend rect to self...")
         c.blend_rect(1, 1, WIDTH / 2 - 1, HEIGHT / 2 - 1, WIDTH / 2, 0, c)
 
-        with io.open('reference.png', 'rb') as reference, io.BytesIO() as test:
-            logging.debug("Writing to file...")
-            test.write(c.dump())
-            test.seek(0)
+        with io.open('reference.png', 'rb') as reference:
+            with io.BytesIO() as test:
+                logging.debug("Writing to file...")
+                test.write(c.dump())
+                test.seek(0)
 
-            logging.debug("Comparing with the reference...")
-            self.assertTrue(self.compare(reference, test))
+                logging.debug("Comparing with the reference...")
+                self.assertTrue(self.compare(reference, test))
 
     def test_read_consistency(self):
         c = PNGCanvas(WIDTH, HEIGHT, color=(0xff, 0, 0, 0xff))
 
-        with io.open('reference.png', 'rb') as reference, io.BytesIO() as test:
-            logging.debug("Loading the reference...")
-            c.load(reference)
+        with io.open('reference.png', 'rb') as reference:
+            with io.BytesIO() as test:
+                logging.debug("Loading the reference...")
+                c.load(reference)
 
-            logging.debug("Writing what is read to file...")
-            test.write(c.dump())
+                logging.debug("Writing what is read to file...")
+                test.write(c.dump())
 
-            reference.seek(0)
-            test.seek(0)
+                reference.seek(0)
+                test.seek(0)
 
-            logging.debug("Comparing with the reference...")
-            self.assertTrue(self.compare(reference, test))
+                logging.debug("Comparing with the reference...")
+                self.assertTrue(self.compare(reference, test))
 
 
 if __name__ == '__main__':
