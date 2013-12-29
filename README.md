@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/rcarmo/pngcanvas.png?branch=master)](https://travis-ci.org/rcarmo/pngcanvas)
+
 pngcanvas
 =========
 
