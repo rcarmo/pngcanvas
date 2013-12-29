@@ -1,7 +1,7 @@
-[![Build Status](https://travis-ci.org/rcarmo/pngcanvas.png?branch=master)](https://travis-ci.org/rcarmo/pngcanvas)
-
 pngcanvas
 =========
+
+[![Build Status](https://travis-ci.org/rcarmo/pngcanvas.png?branch=master)](https://travis-ci.org/rcarmo/pngcanvas)
 
 A minimalist library to render PNG images using pure Python inspired by [Thomas Fuchs'][madrobby] [spark_pr][spark_pr] library, originally published [here][tom] in 2005.
 
