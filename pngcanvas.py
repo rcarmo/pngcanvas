@@ -7,7 +7,9 @@ from __future__ import (
 __version__ = "1.0.3"
 __license__ = "MIT"
 
+__all__ = ['Color', 'PNGCanvas']
 
+from operator import itemgetter
 import struct
 import sys
 import zlib
@@ -25,26 +27,46 @@ def force_int(*args):
     return tuple(int(x) for x in args)
 
 
-def blend(c1, c2):
-    """Alpha blends two colors, using the alpha given by c2"""
-    return [c1[i] * (0xFF - c2[3]) + c2[i] * c2[3] >> 8 for i in range(3)]
+class Color(bytearray):
+    __slots__ = ()
 
+    def __init__(self, red, green, blue, alpha=0xff):
+        self[:] = red, green, blue, alpha
 
-def intensity(c, i):
-    """Compute a new alpha given a 0-0xFF intensity"""
-    return [c[0], c[1], c[2], (c[3] * i) >> 8]
+    def __or__(self, other):  # blend
+        """Alpha blends two colors, using the alpha given by other"""
+        return Color(*[self[i] * (self[3] - other[3]) +
+                       other[i] * other[3] >> 8 for i in range(3)])
 
+    def __coerce__(self, other):
+        try:
+            length = len(other)
+        except TypeError:
+            return None
 
-def grayscale(c):
-    """Compute perceptive grayscale value"""
-    return int(c[0] * 0.3 + c[1] * 0.59 + c[2] * 0.11)
+        if length == 3 or length == 4:
+            return self, Color(*other)
 
+    def intensity(self, i):
+        """Calculate a new alpha given a 0-0xFF intensity"""
+        return Color(self[0], self[1], self[2], (self[3] * i) >> 8)
 
-def gradient_list(start, end, steps):
-    """Compute gradient colors"""
-    delta = [end[i] - start[i] for i in range(4)]
-    return [bytearray(start[j] + (delta[j] * i) // steps for j in range(4))
-            for i in range(steps + 1)]
+    red = property(itemgetter(0))
+    green = property(itemgetter(1))
+    blue = property(itemgetter(2))
+    alpha = property(itemgetter(3))
+
+    @property
+    def greyscale(self):
+        """Calculate perceptive greyscale value"""
+        return int(self[0] * 0.3 + self[1] * 0.59 + self[2] * 0.11)
+
+    @classmethod
+    def gradient(cls, start, end, steps):
+        """Calculate gradient colors"""
+        return [cls(*[
+            start[j] + (end[j] - start[j]) * i // steps for j in range(4)
+        ]) for i in range(steps + 1)]
 
 
 class PNGCanvas(object):
@@ -53,9 +75,9 @@ class PNGCanvas(object):
                  color=(0, 0, 0, 0xff)):
         self.width = width
         self.height = height
-        self.color = bytearray(color)  # rgba
-        self.bgcolor = bytearray(bgcolor)
-        self.canvas = bytearray(self.bgcolor * width * height)
+        self.color = Color(*color)
+        self.bgcolor = Color(*bgcolor)
+        self.canvas = bytearray(bgcolor * width * height)
 
     def _offset(self, x, y):
         """Helper for internal data"""
@@ -66,11 +88,14 @@ class PNGCanvas(object):
         """Set a pixel"""
         if x < 0 or y < 0 or x > self.width - 1 or y > self.height - 1:
             return
+
         if color is None:
             color = self.color
-        o = self._offset(x, y)
+        elif not isinstance(color, Color):
+            color = Color(*color)
 
-        self.canvas[o:o + 3] = blend(self.canvas[o:o + 3], bytearray(color))
+        o = self._offset(x, y)
+        self.canvas[o:o + 4] |= color
 
     @staticmethod
     def rect_helper(x0, y0, x1, y1):
@@ -85,7 +110,7 @@ class PNGCanvas(object):
     def vertical_gradient(self, x0, y0, x1, y1, start, end):
         """Draw a vertical gradient"""
         x0, y0, x1, y1 = self.rect_helper(x0, y0, x1, y1)
-        grad = gradient_list(start, end, y1 - y0)
+        grad = Color.gradient(start, end, y1 - y0)
         for x in range(x0, x1 + 1):
             for y in range(y0, y1 + 1):
                 self.point(x, y, grad[y - y0])
@@ -163,9 +188,9 @@ class PNGCanvas(object):
                 if e_acc <= e_acc_temp:
                     x0 += sx
                 w = 0xFF-(e_acc >> 8)
-                self.point(x0, y0, intensity(self.color, w))
+                self.point(x0, y0, self.color.intensity(w))
                 y0 += 1
-                self.point(x0 + sx, y0, intensity(self.color, (0xFF - w)))
+                self.point(x0 + sx, y0, self.color.intensity(0xFF - w))
             self.point(x1, y1)
             return
 
@@ -176,9 +201,9 @@ class PNGCanvas(object):
             if e_acc <= e_acc_temp:
                 y0 += 1
             w = 0xFF-(e_acc >> 8)
-            self.point(x0, y0, intensity(self.color, w))
+            self.point(x0, y0, self.color.intensity(w))
             x0 += sx
-            self.point(x0, y0 + 1, intensity(self.color, (0xFF-w)))
+            self.point(x0, y0 + 1, self.color.intensity(0xFF-w))
         self.point(x1, y1)
 
     def polyline(self, arr):
@@ -189,10 +214,13 @@ class PNGCanvas(object):
     def dump(self):
         """Dump the image data"""
         scan_lines = bytearray()
+        step = self.width * 4
         for y in range(self.height):
             scan_lines.append(0)  # filter type 0 (None)
+
+            offset = step * y
             scan_lines.extend(
-                self.canvas[(y * self.width * 4):((y + 1) * self.width * 4)]
+                self.canvas[offset:offset + step]
             )
         # image represented as RGBA tuples, no interlacing
         return SIGNATURE + \

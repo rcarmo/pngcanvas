@@ -36,7 +36,7 @@ class CanvasTest(unittest.TestCase):
                             (0xff, 0, 0, 0xff), (0x20, 0, 0xff, 0x80))
 
         logging.debug("Drawing some lines...")
-        c.color = bytearray((0, 0, 0, 0xff))
+        c.color = Color(0, 0, 0)
         c.line(0, 0, WIDTH - 1, HEIGHT - 1)
         c.line(0, 0, WIDTH / 2, HEIGHT - 1)
         c.line(0, 0, WIDTH - 1, HEIGHT / 2)
