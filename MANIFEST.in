@@ -1,0 +1,2 @@
+include AUTHORS LICENSE README.md reference.png
+include test*.py
