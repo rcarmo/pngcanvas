@@ -55,7 +55,7 @@ class PNGCanvas(object):
         self.height = height
         self.color = bytearray(color)  # rgba
         self.bgcolor = bytearray(bgcolor)
-        self.canvas = bytearray(self.bgcolor * 4 * width * height)
+        self.canvas = bytearray(self.bgcolor * width * height)
 
     def _offset(self, x, y):
         """Helper for internal data"""
