@@ -38,15 +38,6 @@ class Color(bytearray):
         return Color(*[self[i] * (self[3] - other[3]) +
                        other[i] * other[3] >> 8 for i in range(3)])
 
-    def __coerce__(self, other):
-        try:
-            length = len(other)
-        except TypeError:
-            return None
-
-        if length == 3 or length == 4:
-            return self, Color(*other)
-
     def intensity(self, i):
         """Calculate a new alpha given a 0-0xFF intensity"""
         return Color(self[0], self[1], self[2], (self[3] * i) >> 8)
@@ -91,11 +82,9 @@ class PNGCanvas(object):
 
         if color is None:
             color = self.color
-        elif not isinstance(color, Color):
-            color = Color(*color)
 
         o = self._offset(x, y)
-        self.canvas[o:o + 4] |= color
+        self.canvas[o:o + 4] = Color(*self.canvas[o:o + 4]) | color
 
     @staticmethod
     def rect_helper(x0, y0, x1, y1):
