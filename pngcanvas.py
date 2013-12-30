@@ -47,7 +47,7 @@ def gradient_list(start, end, steps):
             for i in range(steps + 1)]
 
 
-class PNGCanvas:
+class PNGCanvas(object):
     def __init__(self, width, height,
                  bgcolor=(0xff, 0xff, 0xff, 0xff),
                  color=(0, 0, 0, 0xff)):
