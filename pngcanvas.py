@@ -220,9 +220,16 @@ class PNGCanvas(object):
         (width, height, bit_depth, color_type, compression,
          filter_type, interlace) = struct.unpack(b"!2I5B", header[1])
 
-        if (bit_depth, color_type, compression,
-                filter_type, interlace) != (8, 6, 0, 0, 0):
-            raise TypeError('Unsupported PNG format')
+        if bit_depth != 8:
+            raise ValueError('Unsupported PNG format (bit depth={}; must be 8)'.format(bit_depth))
+        if compression != 0:
+            raise ValueError('Unsupported PNG format (compression={}; must be 0)'.format(compression))
+        if filter_type != 0:
+            raise ValueError('Unsupported PNG format (filter_type={}; must be 0)'.format(filter_type))
+        if interlace != 0:
+            raise ValueError('Unsupported PNG format (interlace={}; must be 0)'.format(interlace))
+        if color_type != 6:
+            raise ValueError('Unsupported PNG format (color_type={}; must be 6)'.format(color_type))
 
         self.width = width
         self.height = height
