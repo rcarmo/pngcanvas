@@ -73,6 +73,19 @@ class CanvasTest(unittest.TestCase):
                 logging.debug("Comparing with the reference...")
                 self.assertTrue(self.compare(reference, test))
 
+    def test_multi_idat(self):
+        ref = PNGCanvas(WIDTH, HEIGHT, color=(0xff, 0, 0, 0xff))
+        ref_multi = PNGCanvas(WIDTH, HEIGHT, color=(0xff, 0, 0, 0xff))
+
+        with io.open('reference-multi-idat.png', 'rb') as f:
+            ref_multi.load(f)
+
+        with io.open('reference.png', 'rb') as f:
+            ref.load(f)
+
+        self.assertEqual(ref_multi.canvas, ref.canvas)
+
+
 
 if __name__ == '__main__':
     unittest.main()
