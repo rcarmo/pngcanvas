@@ -317,8 +317,8 @@ class PNGCanvas(object):
                     value = c
                 cur[xc] = (cur[xc] + value) % 256
                 xp += 1
-            else:
-                raise TypeError('Unrecognized scanline filter type')
+        else:
+            raise ValueError('Unrecognized scanline filter type: {}'.format(filter_type))
         return cur
 
     @staticmethod
