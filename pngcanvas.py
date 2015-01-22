@@ -47,6 +47,16 @@ def gradient_list(start, end, steps):
             for i in range(steps + 1)]
 
 
+def rgb2rgba(rgb):
+    """Take a row of RGB bytes, and convert to a row of RGBA bytes."""
+    rgba = []
+    for i in range(0, len(rgb), 3):
+        rgba += rgb[i:i+3]
+        rgba.append(255)
+    assert len(rgba) == len(rgb) / 3 * 4
+    return rgba
+
+
 class ByteReader(object):
     def __init__(self, chunks):
         self.chunks = chunks
@@ -258,14 +268,16 @@ class PNGCanvas(object):
             raise ValueError('Unsupported PNG format (filter_type={}; must be 0)'.format(filter_type))
         if interlace != 0:
             raise ValueError('Unsupported PNG format (interlace={}; must be 0)'.format(interlace))
-        if color_type != 6:
-            raise ValueError('Unsupported PNG format (color_type={}; must be 6)'.format(color_type))
+        if color_type not in (2, 6):
+            raise ValueError('Unsupported PNG format (color_type={}; must one of [2, 6])'.format(color_type))
 
         self.width = width
         self.height = height
         self.canvas = bytearray(self.bgcolor * width * height)
-        row_size = width * 4
+        bpp = 4 if color_type == 6 else 3
+        row_size = width * bpp
         step_size = 1 + row_size
+        rgba_row_size = width * 4
 
         # Python 2 requires the encode for struct.unpack
         row_fmt = ('!%dB' % step_size).encode('ascii')
@@ -274,10 +286,11 @@ class PNGCanvas(object):
 
         old_row = None
         cursor = 0
-        for cursor in range(0, height * row_size, row_size):
+        for cursor in range(0, height * rgba_row_size, rgba_row_size):
             unpacked = list(struct.unpack(row_fmt, reader.read(step_size)))
-            old_row = self.defilter(unpacked[1:], old_row, unpacked[0])
-            self.canvas[cursor:cursor + row_size] = old_row
+            old_row = self.defilter(unpacked[1:], old_row, unpacked[0], bpp=bpp)
+            rgba_row = old_row if color_type == 6 else rgb2rgba(old_row)
+            self.canvas[cursor:cursor + rgba_row_size] = rgba_row
 
     @staticmethod
     def defilter(cur, prev, filter_type, bpp=4):
