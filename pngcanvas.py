@@ -275,8 +275,8 @@ class PNGCanvas(object):
         old_row = None
         cursor = 0
         for cursor in range(0, height * row_size, row_size):
-            unpacked = struct.unpack(row_fmt, reader.read(step_size))
-            old_row = self.defilter(unpacked[1:], old_row, filter_type)
+            unpacked = list(struct.unpack(row_fmt, reader.read(step_size)))
+            old_row = self.defilter(unpacked[1:], old_row, unpacked[0])
             self.canvas[cursor:cursor + row_size] = old_row
 
     @staticmethod
