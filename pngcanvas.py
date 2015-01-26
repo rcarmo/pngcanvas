@@ -47,6 +47,36 @@ def gradient_list(start, end, steps):
             for i in range(steps + 1)]
 
 
+class ByteReader(object):
+    def __init__(self, chunks):
+        self.chunks = chunks
+        self.decoded = b''
+        self.decompressor = zlib.decompressobj()
+
+    def read(self, num_bytes):
+        """Read `num_bytes` from the compressed data chunks.
+
+        Data is returned as `bytes` of length `num_bytes`
+
+        Will raise an EOFError if data is unavailable.
+
+        Note: Will always return `num_bytes` of data (unlike the file read method).
+
+        """
+        while len(self.decoded) < num_bytes:
+            try:
+                tag, data = next(self.chunks)
+            except StopIteration:
+                raise EOFError()
+            if tag != b'IDAT':
+                continue
+            self.decoded += self.decompressor.decompress(data)
+
+        r = self.decoded[:num_bytes]
+        self.decoded = self.decoded[num_bytes:]
+        return r
+
+
 class PNGCanvas(object):
     def __init__(self, width, height,
                  bgcolor=(0xff, 0xff, 0xff, 0xff),
@@ -240,19 +270,14 @@ class PNGCanvas(object):
         # Python 2 requires the encode for struct.unpack
         row_fmt = ('!%dB' % step_size).encode('ascii')
 
-        for tag, data in chunks:
-            # we ignore tRNS for the moment
-            if tag != b'IDAT':
-                continue
+        reader = ByteReader(chunks)
 
-            raw_data = zlib.decompress(data)
-            old_row = None
-            cursor = 0
-            for i in range(0, height * step_size, step_size):
-                unpacked = struct.unpack(row_fmt, raw_data[i:i + step_size])
-                old_row = self.defilter(unpacked[1:], old_row, filter_type)
-                self.canvas[cursor:cursor + row_size] = old_row
-                cursor += row_size
+        old_row = None
+        cursor = 0
+        for cursor in range(0, height * row_size, row_size):
+            unpacked = struct.unpack(row_fmt, reader.read(step_size))
+            old_row = self.defilter(unpacked[1:], old_row, filter_type)
+            self.canvas[cursor:cursor + row_size] = old_row
 
     @staticmethod
     def defilter(cur, prev, filter_type, bpp=4):
