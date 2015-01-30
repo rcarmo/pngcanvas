@@ -275,8 +275,8 @@ class PNGCanvas(object):
         old_row = None
         cursor = 0
         for cursor in range(0, height * row_size, row_size):
-            unpacked = struct.unpack(row_fmt, reader.read(step_size))
-            old_row = self.defilter(unpacked[1:], old_row, filter_type)
+            unpacked = list(struct.unpack(row_fmt, reader.read(step_size)))
+            old_row = self.defilter(unpacked[1:], old_row, unpacked[0])
             self.canvas[cursor:cursor + row_size] = old_row
 
     @staticmethod
@@ -294,8 +294,10 @@ class PNGCanvas(object):
                 cur[xc] = (cur[xc] + prev[xc]) % 256
         elif filter_type == 3:  # Average
             xp = 0
-            for xc in range(len(cur)):
-                cur[xc] = (cur[xc] + (cur[xp] + prev[xc]) // 2) % 256
+            for i in range(bpp):
+                cur[i] = (cur[i] + prev[i] // 2) % 256
+            for xc in range(bpp, len(cur)):
+                cur[xc] = (cur[xc] + ((cur[xp] + prev[xc]) // 2)) % 256
                 xp += 1
         elif filter_type == 4:  # Paeth
             xp = 0
@@ -317,8 +319,8 @@ class PNGCanvas(object):
                     value = c
                 cur[xc] = (cur[xc] + value) % 256
                 xp += 1
-            else:
-                raise TypeError('Unrecognized scanline filter type')
+        else:
+            raise ValueError('Unrecognized scanline filter type: {}'.format(filter_type))
         return cur
 
     @staticmethod
