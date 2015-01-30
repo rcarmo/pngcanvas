@@ -1,2 +1,3 @@
-include AUTHORS LICENSE README.md reference.png
+include AUTHORS LICENSE README.md
+include *.png
 include test*.py
