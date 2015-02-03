@@ -85,6 +85,25 @@ class CanvasTest(unittest.TestCase):
 
         self.assertEqual(ref_multi.canvas, ref.canvas)
 
+    def test_rgb_load(self):
+        """Load the reference RGB image
+
+        The reference RGB image should have the same canvas data as
+        the reference RGBA image. When loaded into the canvas the RGB
+        image shall be opaque (which matches the opacity of the reference
+        image).
+
+        """
+        ref = PNGCanvas(WIDTH, HEIGHT, color=(0xff, 0, 0, 0xff))
+        ref_rgb = PNGCanvas(WIDTH, HEIGHT, color=(0xff, 0, 0, 0xff))
+
+        with io.open('reference-rgb.png', 'rb') as f:
+            ref_rgb.load(f)
+
+        with io.open('reference.png', 'rb') as f:
+            ref.load(f)
+
+        self.assertEqual(ref_rgb.canvas, ref.canvas)
 
 
 if __name__ == '__main__':

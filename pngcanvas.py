@@ -18,6 +18,14 @@ if sys.version < '3':
     range = xrange  # NOQA
 
 
+# Color types: see table 6.1 "PNG image types and colour types"
+COLOR_TYPE_GRAYSCALE = 0
+COLOR_TYPE_TRUECOLOR = 2
+COLOR_TYPE_INDEXED_COLOR = 3
+COLOR_TYPE_GRAYSCALE_WITH_ALPHA = 4
+COLOR_TYPE_TRUECOLOR_WITH_ALPHA = 6
+
+
 SIGNATURE = struct.pack(b"8B", 137, 80, 78, 71, 13, 10, 26, 10)
 
 
@@ -45,6 +53,16 @@ def gradient_list(start, end, steps):
     delta = [end[i] - start[i] for i in range(4)]
     return [bytearray(start[j] + (delta[j] * i) // steps for j in range(4))
             for i in range(steps + 1)]
+
+
+def rgb2rgba(rgb):
+    """Take a row of RGB bytes, and convert to a row of RGBA bytes."""
+    rgba = []
+    for i in range(0, len(rgb), 3):
+        rgba += rgb[i:i+3]
+        rgba.append(255)
+
+    return rgba
 
 
 class ByteReader(object):
@@ -241,6 +259,10 @@ class PNGCanvas(object):
 
     def load(self, f):
         """Load a PNG image"""
+        SUPPORTED_COLOR_TYPES = (COLOR_TYPE_TRUECOLOR, COLOR_TYPE_TRUECOLOR_WITH_ALPHA)
+        SAMPLES_PER_PIXEL = { COLOR_TYPE_TRUECOLOR: 3,
+                              COLOR_TYPE_TRUECOLOR_WITH_ALPHA: 4 }
+
         assert f.read(8) == SIGNATURE
 
         chunks = iter(self.chunks(f))
@@ -258,26 +280,31 @@ class PNGCanvas(object):
             raise ValueError('Unsupported PNG format (filter_type={}; must be 0)'.format(filter_type))
         if interlace != 0:
             raise ValueError('Unsupported PNG format (interlace={}; must be 0)'.format(interlace))
-        if color_type != 6:
-            raise ValueError('Unsupported PNG format (color_type={}; must be 6)'.format(color_type))
+        if color_type not in SUPPORTED_COLOR_TYPES:
+            raise ValueError('Unsupported PNG format (color_type={}; must one of {})'.format(SUPPORTED_COLOR_TYPES))
 
         self.width = width
         self.height = height
         self.canvas = bytearray(self.bgcolor * width * height)
-        row_size = width * 4
-        step_size = 1 + row_size
+        bytes_per_pixel = SAMPLES_PER_PIXEL[color_type]
+        bytes_per_row = bytes_per_pixel * width
+        bytes_per_rgba_row = SAMPLES_PER_PIXEL[COLOR_TYPE_TRUECOLOR_WITH_ALPHA] * width
+        bytes_per_scanline = bytes_per_row + 1
 
         # Python 2 requires the encode for struct.unpack
-        row_fmt = ('!%dB' % step_size).encode('ascii')
+        scanline_fmt = ('!%dB' % bytes_per_scanline).encode('ascii')
 
         reader = ByteReader(chunks)
 
         old_row = None
         cursor = 0
-        for cursor in range(0, height * row_size, row_size):
-            unpacked = list(struct.unpack(row_fmt, reader.read(step_size)))
-            old_row = self.defilter(unpacked[1:], old_row, unpacked[0])
-            self.canvas[cursor:cursor + row_size] = old_row
+        for row in range(height):
+            scanline = reader.read(bytes_per_scanline)
+            unpacked = list(struct.unpack(scanline_fmt, scanline))
+            old_row = self.defilter(unpacked[1:], old_row, unpacked[0], bpp=bytes_per_pixel)
+            rgba_row = old_row if color_type == COLOR_TYPE_TRUECOLOR_WITH_ALPHA else rgb2rgba(old_row)
+            self.canvas[cursor:cursor + bytes_per_rgba_row] = rgba_row
+            cursor += bytes_per_rgba_row
 
     @staticmethod
     def defilter(cur, prev, filter_type, bpp=4):
