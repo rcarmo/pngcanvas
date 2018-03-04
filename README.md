@@ -2,8 +2,8 @@ pngcanvas
 =========
 
 [![Build Status](https://travis-ci.org/rcarmo/pngcanvas.png?branch=master)](https://travis-ci.org/rcarmo/pngcanvas)
-[![PyPI Version](https://pypip.in/v/pngcanvas/badge.png)](https://pypi.python.org/pypi/pngcanvas/)
-[![Downloads](https://pypip.in/d/pngcanvas/badge.png)](https://pypi.python.org/pypi/pngcanvas/)
+[![PyPI Version](https://img.shields.io/pypi/v/pngcanvas.svg)](https://pypi.python.org/pypi/pngcanvas/)
+[![Downloads](https://img.shields.io/pypi/dm/pngcanvas.svg)](https://pypi.python.org/pypi/pngcanvas/)
 
 A minimalist library to render PNG images using pure Python inspired by [Thomas Fuchs'][madrobby] [spark_pr][spark_pr] library, originally published [here][tom] in 2005.
 
